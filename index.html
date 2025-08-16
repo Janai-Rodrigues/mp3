@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- Metatags para PWA (Progressive Web App) -->
+    <title>Meu Player de Música</title>
+    <meta name="theme-color" content="#121212"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Meu Player">
+    
+    <!-- Ícone do App (um ícone genérico de música) -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/96/000000/music.png">
+    <link rel="icon" href="https://img.icons8.com/fluency/96/000000/music.png" type="image/png">
+
+    <!-- Manifesto do PWA embutido para manter tudo em um arquivo -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAic2hvcnRfbmFtZSI6ICJQbGF5ZXIiLA0KICAibmFtZSI6ICJNZXUgUGxheWVyIGRlIE3DunNpY2EiLA0KICAiaWNvbnMiOiBbDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvNDgvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjQ4eDQ4Ig0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvOTYvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjk2eDk2Ig0KICAgIH0NCiAgXSwNCiAgInN0YXJ0X3VybCI6ICIuIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJ0aGVtZV9jb2xvciI6ICIjMTIxMjEyIiwNCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiINCn0=">
+
+    <style>
+        /* Estilização CSS para a aparência do app */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+        :root {
+            --primary-color: #1DB954;
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-color: #ffffff;
+            --text-secondary-color: #b3b3b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Evita rolagem da página inteira */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            user-select: none; /* Impede seleção de texto */
+        }
+
+        .player-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--surface-color);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        #playlist-container {
+            flex-grow: 1;
+            overflow-y: auto; /* Permite rolagem apenas na lista */
+            margin-bottom: 20px;
+        }
+
+        #playlist {
+            list-style: none;
+        }
+
+        #playlist li {
+            padding: 12px 5px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            color: var(--text-secondary-color);
+        }
+
+        #playlist li:hover {
+            background-color: #282828;
+        }
+
+        #playlist li.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .controls-container {
+            text-align: center;
+        }
+
+        #now-playing {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-container {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary-color);
+            margin-top: 5px;
+        }
+
+        #progress-bar {
+            width: 100%;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #444;
+            outline: none;
+            border-radius: 3px;
+        }
+        #progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #progress-bar::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            margin: 0 20px;
+            transition: transform 0.1s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+        }
+        
+        #play-pause-btn {
+            font-size: 48px;
+            color: var(--primary-color);
+        }
+
+        #file-input-label {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        #file-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Elemento de áudio que irá tocar as músicas (fica invisível) -->
+    <audio id="audio-player"></audio>
+
+    <!-- Estrutura principal do player -->
+    <div class="player-container">
+        
+        <!-- Botão para carregar músicas -->
+        <label for="file-input" id="file-input-label">Carregar Músicas</label>
+        <input type="file" id="file-input" accept="audio/*" multiple>
+
+        <!-- Lista de músicas carregadas -->
+        <div id="playlist-container">
+            <ul id="playlist"></ul>
+        </div>
+
+        <!-- Controles de reprodução -->
+        <div class="controls-container">
+            <div id="now-playing">Selecione suas músicas</div>
+            
+            <input type="range" id="progress-bar" value="0" step="1">
+            <div class="time-container">
+                <span id="current-time">0:00</span>
+                <span id="total-time">0:00</span>
+            </div>
+
+            <div class="buttons">
+                <button class="control-btn" id="prev-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                </button>
+                <button class="control-btn" id="play-pause-btn">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button class="control-btn" id="next-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zm-3.5 6l-8.5 6V6z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lógica JavaScript do player de música
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elementos da UI
+            const audioPlayer = document.getElementById('audio-player');
+            const fileInput = document.getElementById('file-input');
+            const playlistElement = document.getElementById('playlist');
+            const nowPlayingElement = document.getElementById('now-playing');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeElement = document.getElementById('current-time');
+            const totalTimeElement = document.getElementById('total-time');
+
+            // Ícones de Play e Pause (SVG)
+            const playIcon = `<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+            const pauseIcon = `<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+
+            // Estado do player
+            let playlist = [];
+            let currentTrackIndex = -1;
+            let isPlaying = false;
+
+            // Carregar arquivos de música
+            fileInput.addEventListener('change', (event) => {
+                const files = event.target.files;
+                if (files.length === 0) return;
+
+                playlist = Array.from(files);
+                renderPlaylist();
+                if (playlist.length > 0) {
+                    loadTrack(0);
+                }
+            });
+
+            // Renderizar a lista de músicas na tela
+            function renderPlaylist() {
+                playlistElement.innerHTML = '';
+                playlist.forEach((file, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = file.name.replace(/\.[^/.]+$/, ""); // Remove a extensão do arquivo
+                    li.dataset.index = index;
+                    li.addEventListener('click', () => {
+                        loadTrack(index);
+                        playTrack();
+                    });
+                    playlistElement.appendChild(li);
+                });
+            }
+
+            // Carregar uma música no player de áudio
+            function loadTrack(index) {
+                if (index < 0 || index >= playlist.length) return;
+                
+                currentTrackIndex = index;
+                const file = playlist[currentTrackIndex];
+                const fileURL = URL.createObjectURL(file);
+                audioPlayer.src = fileURL;
+                
+                nowPlayingElement.textContent = file.name.replace(/\.[^/.]+$/, "");
+                updatePlaylistUI();
+            }
+
+            // Tocar a música atual
+            function playTrack() {
+                isPlaying = true;
+                audioPlayer.play();
+                playPauseBtn.innerHTML = pauseIcon;
+            }
+
+            // Pausar a música atual
+            function pauseTrack() {
+                isPlaying = false;
+                audioPlayer.pause();
+                playPauseBtn.innerHTML = playIcon;
+            }
+
+            // Tocar ou pausar
+            playPauseBtn.addEventListener('click', () => {
+                if (currentTrackIndex === -1) return;
+                isPlaying ? pauseTrack() : playTrack();
+            });
+
+            // Tocar música anterior
+            prevBtn.addEventListener('click', () => {
+                if (currentTrackIndex > 0) {
+                    loadTrack(currentTrackIndex - 1);
+                    playTrack();
+                }
+            });
+
+            // Tocar próxima música
+            nextBtn.addEventListener('click', () => {
+                playNextTrack();
+            });
+
+            // Função para tocar a próxima música (usada pelo botão e quando a música acaba)
+            function playNextTrack() {
+                 if (currentTrackIndex < playlist.length - 1) {
+                    loadTrack(currentTrackIndex + 1);
+                    playTrack();
+                } else {
+                    // Opcional: voltar para o início da lista
+                    loadTrack(0);
+                    playTrack();
+                }
+            }
+            
+            // Atualizar a barra de progresso e os tempos
+            audioPlayer.addEventListener('timeupdate', () => {
+                if (isNaN(audioPlayer.duration)) return;
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressBar.value = progress;
+                currentTimeElement.textContent = formatTime(audioPlayer.currentTime);
+            });
+
+            // Atualizar o tempo total quando a música carregar
+            audioPlayer.addEventListener('loadedmetadata', () => {
+                totalTimeElement.textContent = formatTime(audioPlayer.duration);
+            });
+
+            // Permitir que o usuário arraste a barra de progresso
+            progressBar.addEventListener('input', () => {
+                if (isNaN(audioPlayer.duration)) return;
+                const seekTime = (progressBar.value / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = seekTime;
+            });
+
+            // Tocar a próxima música quando a atual terminar
+            audioPlayer.addEventListener('ended', () => {
+                playNextTrack();
+            });
+
+            // Atualizar qual música está ativa na lista
+            function updatePlaylistUI() {
+                const items = playlistElement.querySelectorAll('li');
+                items.forEach((item, index) => {
+                    if (index === currentTrackIndex) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            // Formatar o tempo de segundos para MM:SS
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            // Registrar o Service Worker para o PWA funcionar offline
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'meu-player-cache-v1';
+                    const urlsToCache = [
+                        '/', // Cacheia a própria página
+                    ];
+
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+                                    console.log('Cache aberto');
+                                    // Adiciona o próprio arquivo HTML ao cache
+                                    return cache.add(self.location.href);
+                                })
+                        );
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request)
+                                .then(response => {
+                                    return response || fetch(event.request);
+                                })
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+
+                navigator.serviceWorker.register(swUrl)
+                    .then(registration => {
+                        console.log('Service Worker registrado com sucesso:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Falha ao registrar Service Worker:', error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
