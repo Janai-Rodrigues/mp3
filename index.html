@@ -116,19 +116,18 @@
         #player-info { flex-grow: 1; overflow: hidden; }
         #player-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #player-artist { font-size: 12px; color: var(--text-secondary-color); }
-        #player-controls-center { display: flex; flex-direction: column; align-items: center; }
-        #player-buttons { display: flex; align-items: center; }
+        #player-controls-bar { display: flex; align-items: center; }
         .control-btn { background: none; border: none; color: var(--text-secondary-color); font-size: 20px; cursor: pointer; margin: 0 10px; position: relative; }
         .control-btn.active { color: var(--primary-color); }
-        #play-pause-btn { font-size: 40px; color: var(--text-color); }
+        #play-pause-btn-bar, #play-pause-btn { font-size: 40px; color: var(--text-color); }
         #repeat-btn.repeat-one::after {
             content: '1'; font-size: 8px; background-color: var(--primary-color); color: var(--background-color);
             border-radius: 50%; width: 12px; height: 12px; position: absolute; bottom: 0; right: 0;
             display: flex; justify-content: center; align-items: center; font-weight: bold;
         }
-        #progress-container { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 400px; }
-        #progress-bar { width: 100%; height: 4px; background: #535353; border-radius: 2px; -webkit-appearance: none; appearance: none; }
-        #progress-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--text-color); border-radius: 50%; }
+        .progress-container { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .progress-bar { width: 100%; height: 4px; background: #535353; border-radius: 2px; -webkit-appearance: none; appearance: none; }
+        .progress-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--text-color); border-radius: 50%; }
         .time-label { font-size: 12px; color: var(--text-secondary-color); }
 
         /* Player Tela Cheia */
@@ -147,6 +146,7 @@
         #full-player-title { font-size: 24px; font-weight: 700; }
         #full-player-artist { font-size: 16px; color: var(--text-secondary-color); }
         #full-player-controls { margin-top: 20px; }
+        #full-player-buttons { display: flex; align-items: center; justify-content: center; }
 
         /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 300; }
@@ -213,12 +213,10 @@
             <div id="player-title">Nenhuma música</div>
             <div id="player-artist">tocando</div>
         </div>
-        <div id="player-controls-center">
-            <div id="player-buttons" style="pointer-events: auto;">
-                <button class="control-btn" id="play-pause-btn-bar">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-            </div>
+        <div id="player-controls-bar">
+            <button class="control-btn" id="play-pause-btn-bar">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
         </div>
     </div>
 
@@ -238,12 +236,12 @@
             <div id="full-player-artist">tocando</div>
         </div>
         <div id="full-player-controls">
-            <div id="progress-container">
-                <span id="current-time" class="time-label">0:00</span>
-                <input type="range" id="progress-bar" value="0" step="1">
-                <span id="total-time" class="time-label">0:00</span>
+            <div class="progress-container">
+                <span id="current-time-full" class="time-label">0:00</span>
+                <input type="range" id="progress-bar-full" class="progress-bar" value="0" step="1">
+                <span id="total-time-full" class="time-label">0:00</span>
             </div>
-            <div id="player-buttons">
+            <div id="full-player-buttons">
                 <button class="control-btn" id="shuffle-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
                 </button>
@@ -335,9 +333,9 @@
             const nextBtn = document.getElementById('next-btn');
             const shuffleBtn = document.getElementById('shuffle-btn');
             const repeatBtn = document.getElementById('repeat-btn');
-            const progressBar = document.getElementById('progress-bar');
-            const currentTimeElement = document.getElementById('current-time');
-            const totalTimeElement = document.getElementById('total-time');
+            const progressBar = document.getElementById('progress-bar-full');
+            const currentTimeElement = document.getElementById('current-time-full');
+            const totalTimeElement = document.getElementById('total-time-full');
             const playerArt = document.getElementById('player-art');
             const playerTitle = document.getElementById('player-title');
             const playerArtist = document.getElementById('player-artist');
@@ -868,21 +866,16 @@
                 if (isNaN(audioPlayer.duration)) return;
                 const progressValue = (audioPlayer.currentTime / audioPlayer.duration) * 100;
                 progressBar.value = progressValue;
-                document.getElementById('progress-bar-full').value = progressValue;
                 currentTimeElement.textContent = formatTime(audioPlayer.currentTime);
-                document.getElementById('current-time-full').textContent = formatTime(audioPlayer.currentTime);
             };
             audioPlayer.onloadedmetadata = () => {
                 totalTimeElement.textContent = formatTime(audioPlayer.duration);
-                document.getElementById('total-time-full').textContent = formatTime(audioPlayer.duration);
             };
             
-            const seek = (e) => {
+            progressBar.oninput = () => {
                 if (isNaN(audioPlayer.duration)) return;
-                audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = (progressBar.value / 100) * audioPlayer.duration;
             };
-            progressBar.oninput = seek;
-            document.getElementById('progress-bar-full').oninput = seek;
             
             function updateActiveTrackUI() {
                 let list, playlistForUI;
