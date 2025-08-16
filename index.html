@@ -65,7 +65,7 @@
         .bar:nth-child(4) { animation-delay: 0.6s; }
         @keyframes pulse { 0%, 100% { height: 10px; } 50% { height: 50px; } }
         
-        #loading-message { font-size: 14px; color: var(--text-secondary-color); height: 2em; margin-bottom: 10px; }
+        #loading-message { font-size: 14px; color: var(--text-secondary-color); height: 2em; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 90%; }
         #loading-counter { font-weight: 500; }
 
         /* Navegação Principal (Abas) */
@@ -149,7 +149,7 @@
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
         <p id="loading-message">Procurando músicas...</p>
-        <p id="loading-counter">0 / 0</p>
+        <p id="loading-counter"></p>
     </div>
 
     <div id="library-view" class="main-view hidden">
@@ -331,8 +331,8 @@
             async function selectAndScanDirectory() {
                 try {
                     const dirHandle = await window.showDirectoryPicker();
+                    showView('loading'); // Mostra a tela de carregamento IMEDIATAMENTE
                     await saveDirectoryHandleToDB(dirHandle);
-                    showView('loading');
                     await scanAndProcessDirectory(dirHandle);
                     renderAll();
                     showView('library');
@@ -384,41 +384,31 @@
                 return false;
             }
 
-            function updateLoadingProgress(current, total, fileName) {
-                const loadingMessage = document.getElementById('loading-message');
-                const loadingCounter = document.getElementById('loading-counter');
-                
-                loadingMessage.textContent = fileName || 'Procurando músicas...';
-                loadingCounter.textContent = `${current} / ${total}`;
-            }
-
             async function scanAndProcessDirectory(dirHandle) {
                 allTracks.clear();
                 albums.clear();
-                const fileHandles = [];
                 
-                async function collectFiles(dir) {
+                let processedCount = 0;
+                const loadingMessage = document.getElementById('loading-message');
+                const loadingCounter = document.getElementById('loading-counter');
+
+                async function scan(dir) {
                     for await (const entry of dir.values()) {
                         if (entry.kind === 'file' && entry.name.match(/\.(mp3|m4a|flac|wav)$/i)) {
-                            fileHandles.push(entry);
+                            processedCount++;
+                            loadingCounter.textContent = `${processedCount} músicas encontradas`;
+                            loadingMessage.textContent = entry.name;
+                            
+                            const file = await entry.getFile();
+                            await processFile(file);
+
                         } else if (entry.kind === 'directory') {
-                            await collectFiles(entry);
+                            await scan(entry);
                         }
                     }
                 }
-                
-                await collectFiles(dirHandle);
 
-                const totalFiles = fileHandles.length;
-                let processedCount = 0;
-                updateLoadingProgress(processedCount, totalFiles);
-
-                for (const handle of fileHandles) {
-                    const file = await handle.getFile();
-                    await processFile(file);
-                    processedCount++;
-                    updateLoadingProgress(processedCount, totalFiles, file.name);
-                }
+                await scan(dirHandle);
             }
             
             function generateTrackId(tags, file) {
