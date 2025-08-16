@@ -96,7 +96,7 @@
         #header-art { width: 50px; height: 50px; border-radius: 5px; margin-right: 15px; }
         #header-title { font-size: 18px; font-weight: 700; }
         
-        #tracklist { list-style: none; }
+        #tracklist, #all-songs-list { list-style: none; }
         .track-item { display: flex; align-items: center; padding: 10px 5px; border-radius: 5px; position: relative; }
         .track-item-clickable { cursor: pointer; }
         .track-item-clickable:hover { background-color: #282828; }
@@ -118,8 +118,14 @@
         #player-artist { font-size: 12px; color: var(--text-secondary-color); }
         #player-controls-center { display: flex; flex-direction: column; align-items: center; }
         #player-buttons { display: flex; align-items: center; }
-        .control-btn { background: none; border: none; color: var(--text-color); font-size: 22px; cursor: pointer; margin: 0 10px; }
-        #play-pause-btn { font-size: 40px; }
+        .control-btn { background: none; border: none; color: var(--text-secondary-color); font-size: 20px; cursor: pointer; margin: 0 10px; position: relative; }
+        .control-btn.active { color: var(--primary-color); }
+        #play-pause-btn { font-size: 40px; color: var(--text-color); }
+        #repeat-btn.repeat-one::after {
+            content: '1'; font-size: 8px; background-color: var(--primary-color); color: var(--background-color);
+            border-radius: 50%; width: 12px; height: 12px; position: absolute; bottom: 0; right: 0;
+            display: flex; justify-content: center; align-items: center; font-weight: bold;
+        }
         #progress-container { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 400px; }
         #progress-bar { width: 100%; height: 4px; background: #535353; border-radius: 2px; -webkit-appearance: none; appearance: none; }
         #progress-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--text-color); border-radius: 50%; }
@@ -156,6 +162,7 @@
         <nav id="main-nav">
             <span class="nav-tab active" data-view="albums-view">Álbuns</span>
             <span class="nav-tab" data-view="playlists-view">Playlists</span>
+            <span class="nav-tab" data-view="all-songs-view">Todas</span>
         </nav>
         
         <div id="albums-view">
@@ -165,6 +172,10 @@
         <div id="playlists-view" class="hidden">
             <button id="new-playlist-btn" class="btn-primary" style="margin-bottom: 20px;">+ Nova Playlist</button>
             <div id="playlist-grid" class="grid-container"></div>
+        </div>
+
+        <div id="all-songs-view" class="hidden">
+            <ul id="all-songs-list"></ul>
         </div>
     </div>
 
@@ -187,6 +198,9 @@
         </div>
         <div id="player-controls-center">
             <div id="player-buttons">
+                <button class="control-btn" id="shuffle-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                </button>
                 <button class="control-btn" id="prev-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                 </button>
@@ -195,6 +209,9 @@
                 </button>
                 <button class="control-btn" id="next-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zm-3.5 6l-8.5 6V6z"/></svg>
+                </button>
+                <button class="control-btn" id="repeat-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
                 </button>
             </div>
             <div id="progress-container">
@@ -255,8 +272,10 @@
             const mainNavTabs = document.querySelectorAll('.nav-tab');
             const albumsView = document.getElementById('albums-view');
             const playlistsView = document.getElementById('playlists-view');
+            const allSongsView = document.getElementById('all-songs-view');
             const albumGrid = document.getElementById('album-grid');
             const playlistGrid = document.getElementById('playlist-grid');
+            const allSongsList = document.getElementById('all-songs-list');
             const backBtn = document.getElementById('back-btn');
             const tracklistElement = document.getElementById('tracklist');
             const newPlaylistBtn = document.getElementById('new-playlist-btn');
@@ -271,6 +290,8 @@
             const playPauseBtn = document.getElementById('play-pause-btn');
             const prevBtn = document.getElementById('prev-btn');
             const nextBtn = document.getElementById('next-btn');
+            const shuffleBtn = document.getElementById('shuffle-btn');
+            const repeatBtn = document.getElementById('repeat-btn');
             const progressBar = document.getElementById('progress-bar');
             const currentTimeElement = document.getElementById('current-time');
             const totalTimeElement = document.getElementById('total-time');
@@ -285,10 +306,13 @@
             let allTracks = new Map();
             let albums = new Map();
             let currentPlaylist = [];
+            let originalPlaylist = [];
             let currentTrackIndex = -1;
             let isPlaying = false;
             let trackToAddToPlaylist = null;
             let currentView = 'setup';
+            let shuffleMode = false;
+            let repeatMode = 'none'; // 'none', 'all', 'one'
 
             // --- INICIALIZAÇÃO DO APP ---
             async function init() {
@@ -331,7 +355,7 @@
             async function selectAndScanDirectory() {
                 try {
                     const dirHandle = await window.showDirectoryPicker();
-                    showView('loading'); // Mostra a tela de carregamento IMEDIATAMENTE
+                    showView('loading');
                     await saveDirectoryHandleToDB(dirHandle);
                     await scanAndProcessDirectory(dirHandle);
                     renderAll();
@@ -506,6 +530,7 @@
             function renderAll() {
                 renderAlbums();
                 renderPlaylists();
+                renderAllSongs();
             }
             
             function renderAlbums() {
@@ -537,6 +562,34 @@
                     `;
                     card.onclick = () => renderTracklist({ type: 'playlist', id: playlist.id });
                     playlistGrid.appendChild(card);
+                });
+            }
+
+            function renderAllSongs() {
+                allSongsList.innerHTML = '';
+                const sortedTracks = [...allTracks.values()].sort((a, b) => a.title.localeCompare(b.title));
+                const allTrackIds = sortedTracks.map(t => t.id);
+
+                sortedTracks.forEach((track, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'track-item';
+                    li.innerHTML = `
+                        <div class="track-info track-item-clickable">
+                            <div class="track-title">${track.title}</div>
+                            <div class="track-artist">${track.artist}</div>
+                        </div>
+                        <button class="options-btn">⋮</button>
+                    `;
+                    li.querySelector('.track-item-clickable').onclick = () => {
+                        setPlaylist(allTrackIds);
+                        loadTrack(index);
+                        playTrack();
+                    };
+                    li.querySelector('.options-btn').onclick = (e) => {
+                        e.stopPropagation();
+                        openAddToPlaylistModal(track.id);
+                    };
+                    allSongsList.appendChild(li);
                 });
             }
             
@@ -575,7 +628,7 @@
                         <button class="options-btn">⋮</button>
                     `;
                     li.querySelector('.track-item-clickable').onclick = () => {
-                        currentPlaylist = trackIds;
+                        setPlaylist(trackIds);
                         loadTrack(index);
                         playTrack();
                     };
@@ -594,6 +647,7 @@
                     tab.classList.add('active');
                     albumsView.classList.toggle('hidden', tab.dataset.view !== 'albums-view');
                     playlistsView.classList.toggle('hidden', tab.dataset.view !== 'playlists-view');
+                    allSongsView.classList.toggle('hidden', tab.dataset.view !== 'all-songs-view');
                 }
             });
 
@@ -645,6 +699,15 @@
             cancelAddBtn.onclick = () => addToPlaylistModal.classList.add('hidden');
 
             // --- PLAYER LOGIC ---
+            function setPlaylist(trackIds) {
+                originalPlaylist = [...trackIds];
+                if (shuffleMode) {
+                    currentPlaylist = shuffleArray([...trackIds]);
+                } else {
+                    currentPlaylist = [...trackIds];
+                }
+            }
+
             function loadTrack(index) {
                 if (index < 0 || index >= currentPlaylist.length) return;
                 currentTrackIndex = index;
@@ -666,11 +729,16 @@
             function pauseTrack() { isPlaying = false; audioPlayer.pause(); playPauseBtn.innerHTML = playIcon; }
             
             playPauseBtn.onclick = () => {
-                if (currentTrackIndex === -1) return;
-                isPlaying ? pauseTrack() : playTrack();
+                if (currentTrackIndex === -1 && currentPlaylist.length > 0) {
+                    loadTrack(0);
+                    playTrack();
+                } else if (currentTrackIndex !== -1) {
+                    isPlaying ? pauseTrack() : playTrack();
+                }
             };
 
             prevBtn.onclick = () => {
+                if (currentPlaylist.length === 0) return;
                 let prevIndex = currentTrackIndex - 1;
                 if (prevIndex < 0) prevIndex = currentPlaylist.length - 1;
                 loadTrack(prevIndex);
@@ -678,13 +746,63 @@
             };
             
             const playNextTrack = () => {
+                if (currentPlaylist.length === 0) return;
                 let nextIndex = currentTrackIndex + 1;
-                if (nextIndex >= currentPlaylist.length) nextIndex = 0;
+                if (nextIndex >= currentPlaylist.length) {
+                    if (repeatMode === 'all') {
+                        nextIndex = 0;
+                    } else {
+                        pauseTrack();
+                        return;
+                    }
+                }
                 loadTrack(nextIndex);
                 playTrack();
             };
             nextBtn.onclick = playNextTrack;
-            audioPlayer.onended = playNextTrack;
+            
+            audioPlayer.onended = () => {
+                if (repeatMode === 'one') {
+                    loadTrack(currentTrackIndex);
+                    playTrack();
+                } else {
+                    playNextTrack();
+                }
+            };
+
+            shuffleBtn.onclick = () => {
+                shuffleMode = !shuffleMode;
+                shuffleBtn.classList.toggle('active', shuffleMode);
+                const currentTrackId = originalPlaylist[currentTrackIndex];
+                setPlaylist(originalPlaylist);
+                // Manter a música atual tocando
+                if(isPlaying) {
+                    currentTrackIndex = currentPlaylist.findIndex(id => id === currentTrackId);
+                }
+            };
+
+            repeatBtn.onclick = () => {
+                if (repeatMode === 'none') {
+                    repeatMode = 'all';
+                    repeatBtn.classList.add('active');
+                    repeatBtn.classList.remove('repeat-one');
+                } else if (repeatMode === 'all') {
+                    repeatMode = 'one';
+                    repeatBtn.classList.add('repeat-one');
+                } else {
+                    repeatMode = 'none';
+                    repeatBtn.classList.remove('active');
+                    repeatBtn.classList.remove('repeat-one');
+                }
+            };
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
 
             audioPlayer.ontimeupdate = () => {
                 if (isNaN(audioPlayer.duration)) return;
@@ -700,10 +818,14 @@
             };
             
             function updateActiveTrackUI() {
-                if (currentView === 'tracklist') {
-                    const items = tracklistElement.querySelectorAll('.track-item');
+                if (currentView === 'tracklist' || currentView === 'library' && document.getElementById('all-songs-view').classList.contains('hidden') === false) {
+                    const list = currentView === 'tracklist' ? tracklistElement : allSongsList;
+                    const items = list.querySelectorAll('.track-item');
+                    const playlistForUI = shuffleMode ? originalPlaylist : currentPlaylist;
+                    const uiIndex = playlistForUI.findIndex(id => id === currentPlaylist[currentTrackIndex]);
+
                     items.forEach((item, index) => {
-                        item.classList.toggle('active', index === currentTrackIndex);
+                        item.classList.toggle('active', index === uiIndex);
                     });
                 }
             }
