@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     
     <!-- Metatags para PWA (Progressive Web App) -->
-    <title>Meu Player de Música</title>
+    <title>Meu Player</title>
     <meta name="theme-color" content="#121212"/>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,11 +15,14 @@
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/96/000000/music.png">
     <link rel="icon" href="https://img.icons8.com/fluency/96/000000/music.png" type="image/png">
 
-    <!-- Manifesto do PWA embutido para manter tudo em um arquivo -->
+    <!-- Manifesto do PWA embutido -->
     <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAic2hvcnRfbmFtZSI6ICJQbGF5ZXIiLA0KICAibmFtZSI6ICJNZXUgUGxheWVyIGRlIE3DunNpY2EiLA0KICAiaWNvbnMiOiBbDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvNDgvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjQ4eDQ4Ig0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvOTYvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjk2eDk2Ig0KICAgIH0NCiAgXSwNCiAgInN0YXJ0X3VybCI6ICIuIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJ0aGVtZV9jb2xvciI6ICIjMTIxMjEyIiwNCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiINCn0=">
 
+    <!-- Biblioteca para ler metadados (capas de álbum, etc.) dos arquivos de música -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+
     <style>
-        /* Estilização CSS para a aparência do app */
+        /* Estilização CSS inspirada no Spotify */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
         :root {
@@ -28,6 +31,7 @@
             --surface-color: #1e1e1e;
             --text-color: #ffffff;
             --text-secondary-color: #b3b3b3;
+            --player-bar-height: 80px;
         }
 
         * {
@@ -38,7 +42,7 @@
 
         html, body {
             height: 100%;
-            overflow: hidden; /* Evita rolagem da página inteira */
+            overflow: hidden;
         }
 
         body {
@@ -47,196 +51,241 @@
             color: var(--text-color);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            user-select: none; /* Impede seleção de texto */
+            user-select: none;
         }
 
-        .player-container {
-            width: 100%;
-            max-width: 400px;
-            height: 100%;
+        .main-view {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 20px calc(var(--player-bar-height) + 20px) 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Tela Inicial / Seleção de Pasta */
+        #home-view {
             display: flex;
             flex-direction: column;
-            background-color: var(--surface-color);
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-        }
-
-        #playlist-container {
-            flex-grow: 1;
-            overflow-y: auto; /* Permite rolagem apenas na lista */
-            margin-bottom: 20px;
-        }
-
-        #playlist {
-            list-style: none;
-        }
-
-        #playlist li {
-            padding: 12px 5px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 14px;
-            color: var(--text-secondary-color);
-        }
-
-        #playlist li:hover {
-            background-color: #282828;
-        }
-
-        #playlist li.active {
-            color: var(--primary-color);
-            font-weight: 500;
-        }
-
-        .controls-container {
+            justify-content: center;
+            align-items: center;
+            height: 100%;
             text-align: center;
         }
 
-        #now-playing {
-            font-size: 16px;
-            font-weight: 500;
+        #home-view h1 {
+            font-size: 24px;
             margin-bottom: 10px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
-
-        .time-container {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
+        #home-view p {
             color: var(--text-secondary-color);
-            margin-top: 5px;
+            margin-bottom: 30px;
+            max-width: 300px;
         }
 
-        #progress-bar {
+        #select-folder-btn {
+            padding: 15px 30px;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            transition: transform 0.1s;
+        }
+        #select-folder-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Grade de Álbuns */
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        #album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+        }
+
+        .album-card {
+            cursor: pointer;
+            background-color: var(--surface-color);
+            padding: 15px;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+        }
+        .album-card:hover {
+            background-color: #282828;
+        }
+        .album-art {
             width: 100%;
-            cursor: pointer;
-            -webkit-appearance: none;
-            appearance: none;
-            height: 6px;
-            background: #444;
-            outline: none;
-            border-radius: 3px;
+            aspect-ratio: 1 / 1;
+            border-radius: 5px;
+            object-fit: cover;
+            background-color: #333;
+            margin-bottom: 10px;
         }
-        #progress-bar::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            background: var(--primary-color);
-            border-radius: 50%;
-            cursor: pointer;
+        .album-title {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        #progress-bar::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            background: var(--primary-color);
-            border-radius: 50%;
-            cursor: pointer;
+        .album-artist {
+            font-size: 14px;
+            color: var(--text-secondary-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-
-        .buttons {
+        
+        /* Lista de Músicas do Álbum */
+        #tracklist-header {
             display: flex;
-            justify-content: center;
             align-items: center;
-            margin-top: 20px;
+            margin-bottom: 20px;
         }
-
-        .control-btn {
+        #back-to-albums-btn {
             background: none;
             border: none;
             color: var(--text-color);
             font-size: 24px;
             cursor: pointer;
-            margin: 0 20px;
-            transition: transform 0.1s;
+            margin-right: 15px;
         }
-
-        .control-btn:active {
-            transform: scale(0.9);
+        #tracklist-album-art {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+        #tracklist-album-title {
+            font-size: 18px;
+            font-weight: 700;
         }
         
-        #play-pause-btn {
-            font-size: 48px;
+        #tracklist {
+            list-style: none;
+        }
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .track-item:hover {
+            background-color: #282828;
+        }
+        .track-item.active .track-title {
             color: var(--primary-color);
         }
-
-        #file-input-label {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            background-color: var(--primary-color);
-            color: var(--text-color);
-            text-align: center;
-            border-radius: 10px;
-            cursor: pointer;
+        .track-number {
+            color: var(--text-secondary-color);
+            width: 25px;
+            text-align: right;
+            margin-right: 15px;
+        }
+        .track-title {
             font-weight: 500;
-            margin-bottom: 20px;
         }
-        #file-input {
-            display: none;
+
+        /* Player Fixo no Rodapé */
+        #player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--player-bar-height);
+            background-color: var(--surface-color);
+            border-top: 1px solid #282828;
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
+        #player-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        .control-btn {
+            background: none; border: none; color: var(--text-color);
+            font-size: 22px; cursor: pointer; margin: 0 15px;
+        }
+        #play-pause-btn { font-size: 40px; }
+        #progress-container { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+        #progress-bar { width: 100%; height: 4px; background: #535353; border-radius: 2px; -webkit-appearance: none; appearance: none; }
+        #progress-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--text-color); border-radius: 50%; cursor: pointer; }
+        .time-label { font-size: 12px; color: var(--text-secondary-color); }
     </style>
 </head>
 <body>
 
-    <!-- Elemento de áudio que irá tocar as músicas (fica invisível) -->
     <audio id="audio-player"></audio>
 
-    <!-- Estrutura principal do player -->
-    <div class="player-container">
-        
-        <!-- Botão para carregar músicas -->
-        <label for="file-input" id="file-input-label">Carregar Músicas</label>
-        <input type="file" id="file-input" accept="audio/*" multiple>
+    <div id="home-view" class="main-view">
+        <h1>Bem-vindo ao Meu Player</h1>
+        <p>Para começar, selecione a pasta onde suas músicas estão salvas no seu aparelho.</p>
+        <button id="select-folder-btn">Selecionar Pasta de Músicas</button>
+    </div>
 
-        <!-- Lista de músicas carregadas -->
-        <div id="playlist-container">
-            <ul id="playlist"></ul>
+    <div id="library-view" class="main-view hidden">
+        <h2 class="section-title">Seus Álbuns</h2>
+        <div id="album-grid"></div>
+    </div>
+
+    <div id="tracklist-view" class="main-view hidden">
+        <div id="tracklist-header">
+            <button id="back-to-albums-btn">&lt;</button>
+            <img id="tracklist-album-art" src="https://placehold.co/100x100/333333/333333?text=." alt="Capa do Álbum">
+            <div>
+                <div id="tracklist-album-title">Nome do Álbum</div>
+            </div>
         </div>
+        <ul id="tracklist"></ul>
+    </div>
 
-        <!-- Controles de reprodução -->
-        <div class="controls-container">
-            <div id="now-playing">Selecione suas músicas</div>
-            
+    <div id="player-bar" class="hidden">
+        <!-- Futuramente, pode adicionar info da música aqui -->
+        <div id="progress-container">
+            <span id="current-time" class="time-label">0:00</span>
             <input type="range" id="progress-bar" value="0" step="1">
-            <div class="time-container">
-                <span id="current-time">0:00</span>
-                <span id="total-time">0:00</span>
-            </div>
-
-            <div class="buttons">
-                <button class="control-btn" id="prev-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-                </button>
-                <button class="control-btn" id="play-pause-btn">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                </button>
-                <button class="control-btn" id="next-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zm-3.5 6l-8.5 6V6z"/></svg>
-                </button>
-            </div>
+            <span id="total-time" class="time-label">0:00</span>
+        </div>
+        <div id="player-controls">
+            <button class="control-btn" id="prev-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+            <button class="control-btn" id="play-pause-btn">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="control-btn" id="next-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zm-3.5 6l-8.5 6V6z"/></svg>
+            </button>
         </div>
     </div>
 
     <script>
-        // Lógica JavaScript do player de música
         document.addEventListener('DOMContentLoaded', () => {
             // Elementos da UI
+            const homeView = document.getElementById('home-view');
+            const libraryView = document.getElementById('library-view');
+            const tracklistView = document.getElementById('tracklist-view');
+            const playerBar = document.getElementById('player-bar');
+            
+            const selectFolderBtn = document.getElementById('select-folder-btn');
+            const albumGrid = document.getElementById('album-grid');
+            const tracklistElement = document.getElementById('tracklist');
+            const backToAlbumsBtn = document.getElementById('back-to-albums-btn');
+
             const audioPlayer = document.getElementById('audio-player');
-            const fileInput = document.getElementById('file-input');
-            const playlistElement = document.getElementById('playlist');
-            const nowPlayingElement = document.getElementById('now-playing');
             const playPauseBtn = document.getElementById('play-pause-btn');
             const prevBtn = document.getElementById('prev-btn');
             const nextBtn = document.getElementById('next-btn');
@@ -244,76 +293,146 @@
             const currentTimeElement = document.getElementById('current-time');
             const totalTimeElement = document.getElementById('total-time');
 
-            // Ícones de Play e Pause (SVG)
-            const playIcon = `<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-            const pauseIcon = `<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+            const playIcon = `<svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+            const pauseIcon = `<svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
 
-            // Estado do player
-            let playlist = [];
+            // Estado do Player
+            let albums = new Map();
+            let currentPlaylist = [];
             let currentTrackIndex = -1;
             let isPlaying = false;
 
-            // Carregar arquivos de música
-            fileInput.addEventListener('change', (event) => {
-                const files = event.target.files;
-                if (files.length === 0) return;
+            // --- LÓGICA DE LEITURA DE ARQUIVOS ---
 
-                playlist = Array.from(files);
-                renderPlaylist();
-                if (playlist.length > 0) {
-                    loadTrack(0);
+            selectFolderBtn.addEventListener('click', async () => {
+                try {
+                    const dirHandle = await window.showDirectoryPicker();
+                    homeView.innerHTML = `<p>Escaneando suas músicas... Isso pode levar um momento.</p>`;
+                    await scanDirectory(dirHandle);
+                    renderAlbums();
+                    showView('library');
+                } catch (err) {
+                    console.error("Erro ao selecionar a pasta:", err);
+                    alert("Você precisa selecionar uma pasta e dar permissão para o app funcionar.");
                 }
             });
 
-            // Renderizar a lista de músicas na tela
-            function renderPlaylist() {
-                playlistElement.innerHTML = '';
-                playlist.forEach((file, index) => {
-                    const li = document.createElement('li');
-                    li.textContent = file.name.replace(/\.[^/.]+$/, ""); // Remove a extensão do arquivo
-                    li.dataset.index = index;
-                    li.addEventListener('click', () => {
-                        loadTrack(index);
-                        playTrack();
+            async function scanDirectory(dirHandle) {
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.match(/\.(mp3|m4a|flac|wav)$/i)) {
+                        const file = await entry.getFile();
+                        await processFile(file);
+                    } else if (entry.kind === 'directory') {
+                        await scanDirectory(entry);
+                    }
+                }
+            }
+
+            function processFile(file) {
+                return new Promise((resolve) => {
+                    window.jsmediatags.read(file, {
+                        onSuccess: function(tag) {
+                            const tags = tag.tags;
+                            const album = tags.album || 'Álbum Desconhecido';
+                            const artist = tags.artist || 'Artista Desconhecido';
+                            
+                            let imageSrc = 'https://placehold.co/300x300/333333/FFFFFF?text=?';
+                            if (tags.picture) {
+                                const { data, format } = tags.picture;
+                                let base64String = "";
+                                for (let i = 0; i < data.length; i++) {
+                                    base64String += String.fromCharCode(data[i]);
+                                }
+                                imageSrc = `data:${format};base64,${window.btoa(base64String)}`;
+                            }
+
+                            if (!albums.has(album)) {
+                                albums.set(album, { artist: artist, art: imageSrc, tracks: [] });
+                            }
+                            albums.get(album).tracks.push({
+                                title: tags.title || file.name,
+                                file: file
+                            });
+                            resolve();
+                        },
+                        onError: function(error) {
+                            console.log('Erro ao ler tags:', file.name, error);
+                            resolve(); // Continua mesmo se um arquivo der erro
+                        }
                     });
-                    playlistElement.appendChild(li);
                 });
             }
 
-            // Carregar uma música no player de áudio
+            // --- LÓGICA DE RENDERIZAÇÃO DA UI ---
+
+            function showView(viewName) {
+                homeView.classList.add('hidden');
+                libraryView.classList.add('hidden');
+                tracklistView.classList.add('hidden');
+                playerBar.classList.remove('hidden');
+
+                if (viewName === 'library') libraryView.classList.remove('hidden');
+                if (viewName === 'tracklist') tracklistView.classList.remove('hidden');
+            }
+
+            function renderAlbums() {
+                albumGrid.innerHTML = '';
+                for (const [albumName, albumData] of albums.entries()) {
+                    const card = document.createElement('div');
+                    card.className = 'album-card';
+                    card.innerHTML = `
+                        <img class="album-art" src="${albumData.art}" alt="${albumName}">
+                        <div class="album-title">${albumName}</div>
+                        <div class="album-artist">${albumData.artist}</div>
+                    `;
+                    card.addEventListener('click', () => renderTracklist(albumName));
+                    albumGrid.appendChild(card);
+                }
+            }
+            
+            function renderTracklist(albumName) {
+                const albumData = albums.get(albumName);
+                if (!albumData) return;
+
+                document.getElementById('tracklist-album-art').src = albumData.art;
+                document.getElementById('tracklist-album-title').textContent = albumName;
+                
+                tracklistElement.innerHTML = '';
+                albumData.tracks.forEach((track, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'track-item';
+                    li.innerHTML = `<span class="track-number">${index + 1}</span><span class="track-title">${track.title}</span>`;
+                    li.addEventListener('click', () => {
+                        currentPlaylist = albumData.tracks;
+                        loadTrack(index);
+                        playTrack();
+                    });
+                    tracklistElement.appendChild(li);
+                });
+                showView('tracklist');
+            }
+
+            backToAlbumsBtn.addEventListener('click', () => showView('library'));
+
+            // --- LÓGICA DO PLAYER DE ÁUDIO ---
+
             function loadTrack(index) {
-                if (index < 0 || index >= playlist.length) return;
-                
+                if (index < 0 || index >= currentPlaylist.length) return;
                 currentTrackIndex = index;
-                const file = playlist[currentTrackIndex];
-                const fileURL = URL.createObjectURL(file);
+                const track = currentPlaylist[index];
+                const fileURL = URL.createObjectURL(track.file);
                 audioPlayer.src = fileURL;
-                
-                nowPlayingElement.textContent = file.name.replace(/\.[^/.]+$/, "");
-                updatePlaylistUI();
+                updateActiveTrackUI();
             }
 
-            // Tocar a música atual
-            function playTrack() {
-                isPlaying = true;
-                audioPlayer.play();
-                playPauseBtn.innerHTML = pauseIcon;
-            }
-
-            // Pausar a música atual
-            function pauseTrack() {
-                isPlaying = false;
-                audioPlayer.pause();
-                playPauseBtn.innerHTML = playIcon;
-            }
-
-            // Tocar ou pausar
+            function playTrack() { isPlaying = true; audioPlayer.play(); playPauseBtn.innerHTML = pauseIcon; }
+            function pauseTrack() { isPlaying = false; audioPlayer.pause(); playPauseBtn.innerHTML = playIcon; }
+            
             playPauseBtn.addEventListener('click', () => {
                 if (currentTrackIndex === -1) return;
                 isPlaying ? pauseTrack() : playTrack();
             });
 
-            // Tocar música anterior
             prevBtn.addEventListener('click', () => {
                 if (currentTrackIndex > 0) {
                     loadTrack(currentTrackIndex - 1);
@@ -321,105 +440,44 @@
                 }
             });
 
-            // Tocar próxima música
-            nextBtn.addEventListener('click', () => {
-                playNextTrack();
-            });
+            nextBtn.addEventListener('click', () => playNextTrack());
+            audioPlayer.addEventListener('ended', () => playNextTrack());
 
-            // Função para tocar a próxima música (usada pelo botão e quando a música acaba)
             function playNextTrack() {
-                 if (currentTrackIndex < playlist.length - 1) {
-                    loadTrack(currentTrackIndex + 1);
-                    playTrack();
-                } else {
-                    // Opcional: voltar para o início da lista
-                    loadTrack(0);
-                    playTrack();
+                let nextIndex = currentTrackIndex + 1;
+                if (nextIndex >= currentPlaylist.length) {
+                    nextIndex = 0; // Loop
                 }
+                loadTrack(nextIndex);
+                playTrack();
             }
-            
-            // Atualizar a barra de progresso e os tempos
+
             audioPlayer.addEventListener('timeupdate', () => {
                 if (isNaN(audioPlayer.duration)) return;
-                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-                progressBar.value = progress;
+                progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
                 currentTimeElement.textContent = formatTime(audioPlayer.currentTime);
             });
 
-            // Atualizar o tempo total quando a música carregar
             audioPlayer.addEventListener('loadedmetadata', () => {
                 totalTimeElement.textContent = formatTime(audioPlayer.duration);
             });
 
-            // Permitir que o usuário arraste a barra de progresso
             progressBar.addEventListener('input', () => {
                 if (isNaN(audioPlayer.duration)) return;
-                const seekTime = (progressBar.value / 100) * audioPlayer.duration;
-                audioPlayer.currentTime = seekTime;
+                audioPlayer.currentTime = (progressBar.value / 100) * audioPlayer.duration;
             });
-
-            // Tocar a próxima música quando a atual terminar
-            audioPlayer.addEventListener('ended', () => {
-                playNextTrack();
-            });
-
-            // Atualizar qual música está ativa na lista
-            function updatePlaylistUI() {
-                const items = playlistElement.querySelectorAll('li');
+            
+            function updateActiveTrackUI() {
+                const items = tracklistElement.querySelectorAll('.track-item');
                 items.forEach((item, index) => {
-                    if (index === currentTrackIndex) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
+                    item.classList.toggle('active', index === currentTrackIndex);
                 });
             }
 
-            // Formatar o tempo de segundos para MM:SS
             function formatTime(seconds) {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
                 return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-            }
-
-            // Registrar o Service Worker para o PWA funcionar offline
-            if ('serviceWorker' in navigator) {
-                const swCode = `
-                    const CACHE_NAME = 'meu-player-cache-v1';
-                    const urlsToCache = [
-                        '/', // Cacheia a própria página
-                    ];
-
-                    self.addEventListener('install', event => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME)
-                                .then(cache => {
-                                    console.log('Cache aberto');
-                                    // Adiciona o próprio arquivo HTML ao cache
-                                    return cache.add(self.location.href);
-                                })
-                        );
-                    });
-
-                    self.addEventListener('fetch', event => {
-                        event.respondWith(
-                            caches.match(event.request)
-                                .then(response => {
-                                    return response || fetch(event.request);
-                                })
-                        );
-                    });
-                `;
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-
-                navigator.serviceWorker.register(swUrl)
-                    .then(registration => {
-                        console.log('Service Worker registrado com sucesso:', registration);
-                    })
-                    .catch(error => {
-                        console.log('Falha ao registrar Service Worker:', error);
-                    });
             }
         });
     </script>
