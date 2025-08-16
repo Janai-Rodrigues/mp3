@@ -18,7 +18,7 @@
     <!-- Manifesto do PWA embutido -->
     <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAic2hvcnRfbmFtZSI6ICJQbGF5ZXIiLA0KICAibmFtZSI6ICJNZXUgUGxheWVyIGRlIE3DunNpY2EiLA0KICAiaWNvbnMiOiBbDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvNDgvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjQ4eDQ4Ig0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvOTYvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjk2eDk2Ig0KICAgIH0NCiAgXSwNCiAgInN0YXJ0X3VybCI6ICIuIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJ0aGVtZV9jb2xvciI6ICIjMTIxMjEyIiwNCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiINCn0=">
 
-    <!-- Biblioteca para ler metadados (capas de álbum, etc.) dos arquivos de música -->
+    <!-- Biblioteca para ler metdados (capas de álbum, etc.) dos arquivos de música -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 
     <style>
@@ -64,48 +64,41 @@
             display: none !important;
         }
 
-        /* Tela Inicial / Seleção de Pasta */
-        #home-view {
+        /* Cabeçalho da Biblioteca */
+        #library-header {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            height: 100%;
-            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
         }
 
-        #home-view h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        #home-view p {
-            color: var(--text-secondary-color);
-            margin-bottom: 30px;
-            max-width: 300px;
-        }
-
-        #select-folder-btn {
-            padding: 15px 30px;
+        #load-music-btn {
+            padding: 10px 20px;
             background-color: var(--primary-color);
             color: var(--text-color);
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            font-weight: 700;
-            font-size: 16px;
+            font-weight: 500;
+            font-size: 14px;
             transition: transform 0.1s;
         }
-        #select-folder-btn:active {
+        #load-music-btn:active {
             transform: scale(0.95);
+        }
+        
+        #empty-library-message {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-secondary-color);
         }
 
         /* Grade de Álbuns */
-        .section-title {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-
         #album-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -230,15 +223,16 @@
 
     <audio id="audio-player"></audio>
 
-    <div id="home-view" class="main-view">
-        <h1>Bem-vindo ao Meu Player</h1>
-        <p>Para começar, selecione a pasta onde suas músicas estão salvas no seu aparelho.</p>
-        <button id="select-folder-btn">Selecionar Pasta de Músicas</button>
-    </div>
-
-    <div id="library-view" class="main-view hidden">
-        <h2 class="section-title">Seus Álbuns</h2>
+    <div id="library-view" class="main-view">
+        <div id="library-header">
+            <h2 class="section-title">Seus Álbuns</h2>
+            <label for="file-input" id="load-music-btn">Carregar Músicas</label>
+            <input type="file" id="file-input" accept="audio/*" multiple class="hidden">
+        </div>
         <div id="album-grid"></div>
+        <div id="empty-library-message">
+            <p>Nenhum álbum encontrado.<br>Clique em "Carregar Músicas" para começar.</p>
+        </div>
     </div>
 
     <div id="tracklist-view" class="main-view hidden">
@@ -253,7 +247,6 @@
     </div>
 
     <div id="player-bar" class="hidden">
-        <!-- Futuramente, pode adicionar info da música aqui -->
         <div id="progress-container">
             <span id="current-time" class="time-label">0:00</span>
             <input type="range" id="progress-bar" value="0" step="1">
@@ -275,13 +268,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Elementos da UI
-            const homeView = document.getElementById('home-view');
             const libraryView = document.getElementById('library-view');
             const tracklistView = document.getElementById('tracklist-view');
             const playerBar = document.getElementById('player-bar');
             
-            const selectFolderBtn = document.getElementById('select-folder-btn');
+            const fileInput = document.getElementById('file-input');
             const albumGrid = document.getElementById('album-grid');
+            const emptyLibraryMessage = document.getElementById('empty-library-message');
             const tracklistElement = document.getElementById('tracklist');
             const backToAlbumsBtn = document.getElementById('back-to-albums-btn');
 
@@ -304,29 +297,17 @@
 
             // --- LÓGICA DE LEITURA DE ARQUIVOS ---
 
-            selectFolderBtn.addEventListener('click', async () => {
-                try {
-                    const dirHandle = await window.showDirectoryPicker();
-                    homeView.innerHTML = `<p>Escaneando suas músicas... Isso pode levar um momento.</p>`;
-                    await scanDirectory(dirHandle);
-                    renderAlbums();
-                    showView('library');
-                } catch (err) {
-                    console.error("Erro ao selecionar a pasta:", err);
-                    alert("Você precisa selecionar uma pasta e dar permissão para o app funcionar.");
-                }
-            });
+            fileInput.addEventListener('change', async (event) => {
+                const files = event.target.files;
+                if (files.length === 0) return;
 
-            async function scanDirectory(dirHandle) {
-                for await (const entry of dirHandle.values()) {
-                    if (entry.kind === 'file' && entry.name.match(/\.(mp3|m4a|flac|wav)$/i)) {
-                        const file = await entry.getFile();
-                        await processFile(file);
-                    } else if (entry.kind === 'directory') {
-                        await scanDirectory(entry);
-                    }
-                }
-            }
+                emptyLibraryMessage.innerHTML = `<p>Escaneando suas músicas...</p>`;
+                
+                const processingPromises = Array.from(files).map(file => processFile(file));
+                await Promise.all(processingPromises);
+                
+                renderAlbums();
+            });
 
             function processFile(file) {
                 return new Promise((resolve) => {
@@ -366,18 +347,26 @@
             // --- LÓGICA DE RENDERIZAÇÃO DA UI ---
 
             function showView(viewName) {
-                homeView.classList.add('hidden');
                 libraryView.classList.add('hidden');
                 tracklistView.classList.add('hidden');
-                playerBar.classList.remove('hidden');
-
+                
                 if (viewName === 'library') libraryView.classList.remove('hidden');
                 if (viewName === 'tracklist') tracklistView.classList.remove('hidden');
             }
 
             function renderAlbums() {
                 albumGrid.innerHTML = '';
-                for (const [albumName, albumData] of albums.entries()) {
+                if (albums.size === 0) {
+                    emptyLibraryMessage.classList.remove('hidden');
+                    return;
+                }
+                
+                emptyLibraryMessage.classList.add('hidden');
+                playerBar.classList.remove('hidden');
+
+                const sortedAlbums = new Map([...albums.entries()].sort());
+
+                for (const [albumName, albumData] of sortedAlbums.entries()) {
                     const card = document.createElement('div');
                     card.className = 'album-card';
                     card.innerHTML = `
