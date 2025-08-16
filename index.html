@@ -13,14 +13,15 @@
     <link rel="apple-touch-icon" href="https://img.icons8.com/fluency/96/000000/music.png">
     <link rel="icon" href="https://img.icons8.com/fluency/96/000000/music.png" type="image/png">
 
-    <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAic2hvcnRfbmFtZSI6ICJQbGF5ZXIiLA0KICAibmFtZSI6ICJNZXUgUGxheWVyIGRlIE3DunNpY2EiLA0KICAiaWNvbnMiOiBbDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvNDgvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjQ4eDQ4Ig0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvOTYvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjk2eDk2Ig0KICAgIH0NCiAgXSwNCiAgInN0YXJ0X3VybCI6ICIuIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJ0aGVtZV9jb2xvciI6ICIjMTIxMjEyIiwNCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiINCn0=">
+    <!-- Manifesto do PWA com start_url corrigido -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ew0KICAic2hvcnRfbmFtZSI6ICJQbGF5ZXIiLA0KICAibmFtZSI6ICJNZXUgUGxheWVyIGRlIE3DunNpY2EiLA0KICAiaWNvbnMiOiBbDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvNDgvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjQ4eDQ4Ig0KICAgIH0sDQogICAgew0KICAgICAgInNyYyI6ICJodHRwczovL2ltZy5pY29uczguY29tL2ZsdWVuY3kvOTYvMDAwMDAwL211c2ljLnBuZyIsDQogICAgICAidHlwZSI6ICJpbWFnZS9wbmciLA0KICAgICAgInNpemVzIjogIjk2eDk2Ig0KICAgIH0NCiAgXSwNCiAgInN0YXJ0X3VybCI6ICIvIiwNCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsDQogICJ0aGVtZV9jb2xvciI6ICIjMTIxMjEyIiwNCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzEyMTIxMiINCn0=">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     
-    <!-- SDKs do Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- SDKs do Firebase (v9 Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
@@ -73,7 +74,7 @@
         .card-art {
             width: 100%; aspect-ratio: 1 / 1; border-radius: 5px; object-fit: cover;
             background-color: #333; margin-bottom: 10px; display: flex; justify-content: center;
-            align-items: center; font-size: 48px;
+            align-items: center; font-size: 48px; color: var(--text-secondary-color);
         }
         .card-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-subtitle { font-size: 14px; color: var(--text-secondary-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -85,11 +86,12 @@
         #header-title { font-size: 18px; font-weight: 700; }
         
         #tracklist { list-style: none; }
-        .track-item { display: flex; align-items: center; padding: 10px 5px; border-radius: 5px; cursor: pointer; position: relative; }
-        .track-item:hover { background-color: #282828; }
+        .track-item { display: flex; align-items: center; padding: 10px 5px; border-radius: 5px; position: relative; }
+        .track-item-clickable { cursor: pointer; }
+        .track-item-clickable:hover { background-color: #282828; }
         .track-item.active .track-title { color: var(--primary-color); }
-        .track-info { flex-grow: 1; }
-        .track-title { font-weight: 500; }
+        .track-info { flex-grow: 1; overflow: hidden; }
+        .track-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         .track-artist { font-size: 12px; color: var(--text-secondary-color); }
         .options-btn { background: none; border: none; color: var(--text-secondary-color); cursor: pointer; font-size: 20px; padding: 5px; }
 
@@ -113,11 +115,13 @@
         .time-label { font-size: 12px; color: var(--text-secondary-color); }
 
         /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--surface-color); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; }
         .modal-content h3 { margin-bottom: 15px; }
         .modal-content input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #535353; background: #333; color: var(--text-color); margin-bottom: 15px; }
         .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        #modal-playlist-list li { padding: 10px; cursor: pointer; border-radius: 5px; }
+        #modal-playlist-list li:hover { background-color: #282828; }
     </style>
 </head>
 <body>
@@ -221,20 +225,50 @@
             const db = firebase.firestore();
             let userId = null;
             let userPlaylists = [];
+            let favoritesPlaylist = null;
 
             // --- ELEMENTOS DA UI ---
             const setupView = document.getElementById('setup-view');
             const libraryView = document.getElementById('library-view');
             const tracklistView = document.getElementById('tracklist-view');
             const playerBar = document.getElementById('player-bar');
-            // ... (todos os outros getElementById)
+            const mainNavTabs = document.querySelectorAll('.nav-tab');
+            const albumsView = document.getElementById('albums-view');
+            const playlistsView = document.getElementById('playlists-view');
+            const albumGrid = document.getElementById('album-grid');
+            const playlistGrid = document.getElementById('playlist-grid');
+            const backBtn = document.getElementById('back-btn');
+            const tracklistElement = document.getElementById('tracklist');
+            const newPlaylistBtn = document.getElementById('new-playlist-btn');
+            const playlistModal = document.getElementById('playlist-modal');
+            const cancelPlaylistBtn = document.getElementById('cancel-playlist-btn');
+            const createPlaylistBtn = document.getElementById('create-playlist-btn');
+            const playlistNameInput = document.getElementById('playlist-name-input');
+            const addToPlaylistModal = document.getElementById('add-to-playlist-modal');
+            const modalPlaylistList = document.getElementById('modal-playlist-list');
+            const cancelAddBtn = document.getElementById('cancel-add-btn');
+            const audioPlayer = document.getElementById('audio-player');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeElement = document.getElementById('current-time');
+            const totalTimeElement = document.getElementById('total-time');
+            const playerArt = document.getElementById('player-art');
+            const playerTitle = document.getElementById('player-title');
+            const playerArtist = document.getElementById('player-artist');
+            
+            const playIcon = `<svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+            const pauseIcon = `<svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
 
             // --- ESTADO DO APP ---
-            let allTracks = new Map(); // Armazena todas as músicas por um ID único
+            let allTracks = new Map();
             let albums = new Map();
             let currentPlaylist = [];
             let currentTrackIndex = -1;
             let isPlaying = false;
+            let trackToAddToPlaylist = null;
+            let currentView = 'library';
 
             // --- INICIALIZAÇÃO DO APP ---
             async function init() {
@@ -258,7 +292,10 @@
                     }
                 } catch (error) {
                     console.error("Erro na inicialização:", error);
-                    showSetupButton('Clique para selecionar sua pasta de músicas.');
+                    const errorMessage = error.code === 'auth/configuration-not-found'
+                        ? 'Erro: Ative o Login Anônimo no seu painel do Firebase.'
+                        : 'Clique para selecionar sua pasta de músicas.';
+                    showSetupButton(errorMessage);
                 }
             }
             
@@ -318,6 +355,7 @@
             }
 
             async function verifyPermission(dirHandle) {
+                if (!dirHandle) return false;
                 const options = { mode: 'read' };
                 if (await dirHandle.queryPermission(options) === 'granted') return true;
                 if (await dirHandle.requestPermission(options) === 'granted') return true;
@@ -325,6 +363,8 @@
             }
 
             async function scanDirectory(dirHandle) {
+                allTracks.clear();
+                albums.clear();
                 for await (const entry of dirHandle.values()) {
                     if (entry.kind === 'file' && entry.name.match(/\.(mp3|m4a|flac|wav)$/i)) {
                         const file = await entry.getFile();
@@ -337,7 +377,6 @@
             
             function generateTrackId(tags, file) {
                 const key = `${tags.title}-${tags.artist}-${tags.album}-${file.size}`;
-                // Simple hash function
                 let hash = 0;
                 for (let i = 0; i < key.length; i++) {
                     const char = key.charCodeAt(i);
@@ -393,12 +432,17 @@
             async function loadPlaylistsFromFirebase() {
                 const snapshot = await db.collection('users').doc(userId).collection('playlists').get();
                 userPlaylists = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                favoritesPlaylist = userPlaylists.find(p => p.name === 'Favoritas');
+                if (!favoritesPlaylist) {
+                    favoritesPlaylist = await savePlaylistToFirebase('Favoritas');
+                }
             }
 
             async function savePlaylistToFirebase(name, tracks = []) {
-                const playlistRef = db.collection('users').doc(userId).collection('playlists').doc();
-                const newPlaylist = { id: playlistRef.id, name, tracks };
-                await playlistRef.set({ name, tracks });
+                const playlistData = { name, tracks };
+                const docRef = await db.collection('users').doc(userId).collection('playlists').add(playlistData);
+                const newPlaylist = { id: docRef.id, ...playlistData };
                 userPlaylists.push(newPlaylist);
                 return newPlaylist;
             }
@@ -409,25 +453,227 @@
                  if(playlist) playlist.tracks = tracks;
             }
 
-            // --- RENDERIZAÇÃO E UI ---
+            // --- RENDERIZAÇÃO E LÓGICA DE UI ---
             function showView(viewName) {
                 document.querySelectorAll('.main-view').forEach(v => v.classList.add('hidden'));
-                document.getElementById(`${viewName}-view`).classList.remove('hidden');
+                const view = document.getElementById(`${viewName}-view`);
+                if (view) view.classList.remove('hidden');
                 playerBar.classList.remove('hidden');
+                currentView = viewName;
             }
-            
+
             function renderAll() {
                 renderAlbums();
                 renderPlaylists();
             }
             
-            // ... (Funções de renderização, player, modais, etc. adaptadas para usar track IDs)
-            // Esta seção seria muito longa, mas a lógica principal é:
-            // - As listas (álbuns, playlists) armazenam IDs das músicas.
-            // - Para obter os detalhes de uma música, usa-se `allTracks.get(trackId)`.
-            // - Ao tocar uma música, `currentPlaylist` se torna uma lista de IDs.
-            // - O `loadTrack` usa o índice para pegar o ID da `currentPlaylist` e depois os dados de `allTracks`.
+            function renderAlbums() {
+                albumGrid.innerHTML = '';
+                const sortedAlbums = new Map([...albums.entries()].sort());
+                for (const [albumName, albumData] of sortedAlbums.entries()) {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <img class="card-art" src="${albumData.art}" alt="${albumName}">
+                        <div class="card-title">${albumName}</div>
+                        <div class="card-subtitle">${albumData.artist}</div>
+                    `;
+                    card.onclick = () => renderTracklist({ type: 'album', name: albumName });
+                    albumGrid.appendChild(card);
+                }
+            }
 
+            function renderPlaylists() {
+                playlistGrid.innerHTML = '';
+                userPlaylists.forEach(playlist => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    const art = playlist.name === 'Favoritas' ? '❤️' : '🎵';
+                    card.innerHTML = `
+                        <div class="card-art">${art}</div>
+                        <div class="card-title">${playlist.name}</div>
+                        <div class="card-subtitle">${playlist.tracks.length} músicas</div>
+                    `;
+                    card.onclick = () => renderTracklist({ type: 'playlist', id: playlist.id });
+                    playlistGrid.appendChild(card);
+                });
+            }
+            
+            function renderTracklist({ type, name, id }) {
+                let headerArt, headerTitle, trackIds;
+                if (type === 'album') {
+                    const albumData = albums.get(name);
+                    headerArt = albumData.art;
+                    headerTitle = name;
+                    trackIds = albumData.tracks;
+                } else { // playlist
+                    const playlist = userPlaylists.find(p => p.id === id);
+                    headerArt = playlist.name === 'Favoritas' ? null : 'https://placehold.co/100x100/333/FFFFFF?text=🎵';
+                    headerTitle = playlist.name;
+                    trackIds = playlist.tracks;
+                }
+                
+                document.getElementById('header-art').src = headerArt || 'https://placehold.co/100x100/333/FFFFFF?text=❤️';
+                document.getElementById('header-title').textContent = headerTitle;
+                
+                tracklistElement.innerHTML = '';
+                if (trackIds.length === 0) {
+                    tracklistElement.innerHTML = '<p style="color: var(--text-secondary-color); text-align: center; margin-top: 20px;">Nenhuma música aqui.</p>';
+                }
+                trackIds.forEach((trackId, index) => {
+                    const track = allTracks.get(trackId);
+                    if (!track) return; // Música pode não estar mais nos arquivos locais
+                    
+                    const li = document.createElement('li');
+                    li.className = 'track-item';
+                    li.innerHTML = `
+                        <div class="track-info track-item-clickable">
+                            <div class="track-title">${track.title}</div>
+                            <div class="track-artist">${track.artist}</div>
+                        </div>
+                        <button class="options-btn">⋮</button>
+                    `;
+                    li.querySelector('.track-item-clickable').onclick = () => {
+                        currentPlaylist = trackIds;
+                        loadTrack(index);
+                        playTrack();
+                    };
+                    li.querySelector('.options-btn').onclick = (e) => {
+                        e.stopPropagation();
+                        openAddToPlaylistModal(trackId);
+                    };
+                    tracklistElement.appendChild(li);
+                });
+                showView('tracklist');
+            }
+
+            mainNavTabs.forEach(tab => {
+                tab.onclick = () => {
+                    mainNavTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('albums-view').classList.toggle('hidden', tab.dataset.view !== 'albums-view');
+                    document.getElementById('playlists-view').classList.toggle('hidden', tab.dataset.view !== 'playlists-view');
+                }
+            });
+
+            backBtn.onclick = () => showView('library');
+
+            // --- MODALS ---
+            newPlaylistBtn.onclick = () => playlistModal.classList.remove('hidden');
+            cancelPlaylistBtn.onclick = () => playlistModal.classList.add('hidden');
+            createPlaylistBtn.onclick = async () => {
+                const name = playlistNameInput.value.trim();
+                if (name) {
+                    await savePlaylistToFirebase(name);
+                    renderPlaylists();
+                    playlistNameInput.value = '';
+                    playlistModal.classList.add('hidden');
+                }
+            };
+            
+            function openAddToPlaylistModal(trackId) {
+                trackToAddToPlaylist = trackId;
+                modalPlaylistList.innerHTML = '';
+                
+                // Adicionar opção de Favoritos
+                const favLi = document.createElement('li');
+                const isFavorite = favoritesPlaylist.tracks.includes(trackId);
+                favLi.textContent = isFavorite ? '❤️ Remover dos Favoritos' : '❤️ Adicionar aos Favoritos';
+                favLi.onclick = async () => {
+                    const tracks = isFavorite 
+                        ? favoritesPlaylist.tracks.filter(t => t !== trackId)
+                        : [...favoritesPlaylist.tracks, trackId];
+                    await updatePlaylistInFirebase(favoritesPlaylist.id, tracks);
+                    addToPlaylistModal.classList.add('hidden');
+                };
+                modalPlaylistList.appendChild(favLi);
+
+                // Adicionar outras playlists
+                userPlaylists.filter(p => p.name !== 'Favoritas').forEach(playlist => {
+                    const li = document.createElement('li');
+                    li.textContent = playlist.name;
+                    li.onclick = async () => {
+                        if (!playlist.tracks.includes(trackId)) {
+                            const tracks = [...playlist.tracks, trackId];
+                            await updatePlaylistInFirebase(playlist.id, tracks);
+                        }
+                        addToPlaylistModal.classList.add('hidden');
+                    };
+                    modalPlaylistList.appendChild(li);
+                });
+                addToPlaylistModal.classList.remove('hidden');
+            }
+            cancelAddBtn.onclick = () => addToPlaylistModal.classList.add('hidden');
+
+            // --- PLAYER LOGIC ---
+            function loadTrack(index) {
+                if (index < 0 || index >= currentPlaylist.length) return;
+                currentTrackIndex = index;
+                const trackId = currentPlaylist[index];
+                const track = allTracks.get(trackId);
+                if (!track) { // Se a música não for encontrada, pula para a próxima
+                    playNextTrack();
+                    return;
+                }
+
+                audioPlayer.src = URL.createObjectURL(track.file);
+                playerArt.src = track.art;
+                playerTitle.textContent = track.title;
+                playerArtist.textContent = track.artist;
+                updateActiveTrackUI();
+            }
+
+            function playTrack() { isPlaying = true; audioPlayer.play(); playPauseBtn.innerHTML = pauseIcon; }
+            function pauseTrack() { isPlaying = false; audioPlayer.pause(); playPauseBtn.innerHTML = playIcon; }
+            
+            playPauseBtn.onclick = () => {
+                if (currentTrackIndex === -1) return;
+                isPlaying ? pauseTrack() : playTrack();
+            };
+
+            prevBtn.onclick = () => {
+                let prevIndex = currentTrackIndex - 1;
+                if (prevIndex < 0) prevIndex = currentPlaylist.length - 1; // Loop
+                loadTrack(prevIndex);
+                playTrack();
+            };
+            
+            const playNextTrack = () => {
+                let nextIndex = currentTrackIndex + 1;
+                if (nextIndex >= currentPlaylist.length) nextIndex = 0; // Loop
+                loadTrack(nextIndex);
+                playTrack();
+            };
+            nextBtn.onclick = playNextTrack;
+            audioPlayer.onended = playNextTrack;
+
+            audioPlayer.ontimeupdate = () => {
+                if (isNaN(audioPlayer.duration)) return;
+                progressBar.value = (audioPlayer.currentTime / audio_player.duration) * 100;
+                currentTimeElement.textContent = formatTime(audioPlayer.currentTime);
+            };
+            audioPlayer.onloadedmetadata = () => {
+                totalTimeElement.textContent = formatTime(audioPlayer.duration);
+            };
+            progressBar.oninput = () => {
+                if (isNaN(audioPlayer.duration)) return;
+                audioPlayer.currentTime = (progressBar.value / 100) * audioPlayer.duration;
+            };
+            
+            function updateActiveTrackUI() {
+                if (currentView === 'tracklist') {
+                    const items = tracklistElement.querySelectorAll('.track-item');
+                    items.forEach((item, index) => {
+                        item.classList.toggle('active', index === currentTrackIndex);
+                    });
+                }
+            }
+
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+            }
 
             // --- INICIA O APLICATIVO ---
             init();
